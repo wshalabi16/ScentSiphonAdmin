@@ -16,3 +16,24 @@ label {
 .btn-primary {
     @apply bg-green-700 text-white rounded-md py-2 px-4;
 }
+table.basic {
+    @apply w-full;
+}
+table.basic thead tr td{
+    @apply bg-blue-100;
+}
+table.basic tr td{
+    @apply border border-blue-700 p-1;
+}
+table.basic a{
+    @apply bg-blue-900 text-white text-sm py-1 px-2 rounded-md inline-flex gap-1 mr-1;
+}
+.btn-red, .btn-default{
+    @apply px-4 py-1 rounded-md inline-block mt-2;
+}
+.btn-red{
+    @apply bg-red-800 text-white;
+}
+.btn-default{
+    @apply bg-gray-600 text-white;
+}
