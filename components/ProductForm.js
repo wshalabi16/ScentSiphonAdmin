@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";  
 import axios from "axios";
 import { useRouter } from "next/navigation";    
-import Spinner from "./Spinner";  
+import Spinner from "./Spinner"; 
+import { ReactSortable } from "react-sortablejs"; 
 
 export default function ProductForm({_id, title:existingTitle, description:existingDescription, price:existingPrice, images:existingImages}) {
+    
         const [title, setTitle] = useState(existingTitle || '');
         const [description, setDescription] = useState(existingDescription || '');
         const [price, setPrice] = useState(existingPrice || '');
@@ -48,6 +50,10 @@ export default function ProductForm({_id, title:existingTitle, description:exist
                 setIsUploading(false);
             }
         }
+
+        function updateImagesOrder(images) {
+            setImages(images);
+        }
         
         return (
                 <form onSubmit={saveProduct}>
@@ -55,11 +61,13 @@ export default function ProductForm({_id, title:existingTitle, description:exist
                 <input type="text" placeholder="Product Name" value={title} onChange={event  => setTitle(event.target.value)}/>
                 <label>Photos</label>
                 <div className="mb-2 flex flex-wrap gap-1">
+                    <ReactSortable list={images} setList={updateImagesOrder} className="flex flex-wrap gap-1">
                     {!!images?.length && images.map(link => (
                         <div key={link} className="h-24">
                             <img src={link} alt="" className="rounded-lg" />
                         </div>
                     ))}
+                    </ReactSortable>                   
                     {isUploading &&(
                         <div className="h-32 flex items-center justify-center rounded-lg">
                             <Spinner/>

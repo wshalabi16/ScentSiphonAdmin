@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function Products() {
+
   const [products, setProducts] = useState([]);
+  
   useEffect(() => {
     axios.get('/api/products').then(response => {
       setProducts(response.data);
@@ -28,7 +30,7 @@ export default function Products() {
         <tbody>
           {products.map(product => (
             <tr key={product._id}>
-              <td>
+              <td key={product._id}>
                 {product.title}
               </td>
               <td>

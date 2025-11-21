@@ -1,9 +1,11 @@
+"use client";
+
 import Layout from "@/components/Layout";
 
 export default function Orders() {
   return (
     <Layout>
-      Orders page
+      <h1>Orders</h1>
     </Layout>
   );
 }
