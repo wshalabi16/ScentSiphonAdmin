@@ -20,10 +20,10 @@ export default function EditProductPage({ params }) {
     });
   }, [productId]);
 
-    return(
-        <Layout>
-            <h1>Edit Product</h1>
-            {productInfo && (() => <ProductForm {...productInfo} />)()}
-        </Layout>
-    );
+  return(
+    <Layout>
+      <h1>Edit Product</h1>
+      {productInfo && (<ProductForm {...productInfo} />)}
+    </Layout>
+);
 }
