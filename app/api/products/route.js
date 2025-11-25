@@ -4,13 +4,14 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   await mongooseConnect();
-  const { title, description, price, images, category } = await request.json();
+  const { title, description, price, images, category, variants } = await request.json();
   const productDoc = await Product.create({
     title,
     description,
     price,
     images,
-    category: category || null,
+    category: category || undefined,
+    variants: variants || [],
   });
   return NextResponse.json(productDoc);
 }
@@ -19,16 +20,15 @@ export async function GET(request) {
   await mongooseConnect();
   const id = request.nextUrl.searchParams.get('id');
   if (id) {
-    return NextResponse.json(await Product.findOne({ _id: id }));
+    return NextResponse.json(await Product.findOne({ _id: id }).populate('category'));
   } else {
-    const products = await Product.find();
-    return NextResponse.json(products);
+    return NextResponse.json(await Product.find().populate('category'));
   }
 }
 
 export async function PUT(request) {
   await mongooseConnect();
-  const { title, description, price, images, category, _id } = await request.json();
+  const { title, description, price, images, category, variants, _id } = await request.json();
   await Product.updateOne(
     { _id }, 
     { 
@@ -36,7 +36,8 @@ export async function PUT(request) {
       description, 
       price, 
       images,
-      category: category || null,
+      category: category || undefined,
+      variants: variants || [],
     }
   );
   return NextResponse.json(true);

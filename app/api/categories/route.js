@@ -7,7 +7,7 @@ export async function POST(request) {
   const { name, parentCategory } = await request.json();
   const categoryDoc = await Category.create({
     name,
-    parent: parentCategory || null, 
+    parent: parentCategory || undefined,
   });
   return NextResponse.json(categoryDoc);
 }
@@ -23,13 +23,17 @@ export async function PUT(request) {
   const { _id, name, parentCategory } = await request.json();
   const categoryDoc = await Category.updateOne(
     { _id },
-    { name,parent: parentCategory || null, });
+    { 
+      name,
+      parent: parentCategory || undefined,
+    }
+  );
   return NextResponse.json(categoryDoc);
 }
 
 export async function DELETE(request) {
   await mongooseConnect();
-  const id = request.nextUrl.searchParams.get('id');
-  await Category.deleteOne({ _id: id });
-  return NextResponse.json('ok');
+  const _id = request.nextUrl.searchParams.get('_id');
+  await Category.deleteOne({ _id });
+  return NextResponse.json(true);
 }
