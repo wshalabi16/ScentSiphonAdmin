@@ -1,9 +1,15 @@
 import { Product } from "@/models/Product";
 import { mongooseConnect } from "@/lib/mongoose";
 import { NextResponse } from 'next/server';
+import { isAdminRequest } from '@/lib/isAdmin';
 
 export async function POST(request) {
   await mongooseConnect();
+  
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+  }
+  
   const { title, description, price, images, category, variants } = await request.json();
   const productDoc = await Product.create({
     title,
@@ -18,6 +24,11 @@ export async function POST(request) {
 
 export async function GET(request) {
   await mongooseConnect();
+  
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+  }
+  
   const id = request.nextUrl.searchParams.get('id');
   if (id) {
     return NextResponse.json(await Product.findOne({ _id: id }).populate('category'));
@@ -28,6 +39,11 @@ export async function GET(request) {
 
 export async function PUT(request) {
   await mongooseConnect();
+  
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+  }
+  
   const { title, description, price, images, category, variants, _id } = await request.json();
   await Product.updateOne(
     { _id }, 
@@ -45,6 +61,11 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   await mongooseConnect();
+  
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+  }
+  
   const id = request.nextUrl.searchParams.get('id');
   if (id) {
     await Product.deleteOne({ _id: id });

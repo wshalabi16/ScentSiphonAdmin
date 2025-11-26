@@ -31,7 +31,6 @@ export default function Categories() {
         } else {
             await axios.post('/api/categories', data);
         }
-        
         setEditedCategory(null);
         setName('');
         setParentCategory('');
@@ -71,11 +70,7 @@ export default function Categories() {
     return (
         <Layout>
             <h1>Categories</h1>
-            <label>
-                {editedCategory 
-                    ? `Edit Category: ${editedCategory.name}` 
-                    : 'Create New Category'}
-            </label>
+            <label>{editedCategory ? `Edit Category: ${editedCategory.name}` : 'Create New Category'}</label>
             <form onSubmit={saveCategory}>
                 <div className="flex gap-1">
                     <input 
@@ -99,17 +94,9 @@ export default function Categories() {
                 
                 <div className="flex gap-1">
                     {editedCategory && (
-                        <button 
-                            type="button" 
-                            onClick={cancelEdit} 
-                            className="btn-default py-1"
-                        >
-                            Cancel
-                        </button>
+                        <button type="button" onClick={cancelEdit} className="btn-default py-1">Cancel</button>
                     )}
-                    <button type="submit" className="btn-primary py-1">
-                        Save
-                    </button>
+                    <button type="submit" className="btn-primary py-1">Save</button>
                 </div>
             </form>
             
@@ -128,18 +115,8 @@ export default function Categories() {
                                 <td>{category.name}</td> 
                                 <td>{category?.parent?.name}</td>
                                 <td>
-                                    <button 
-                                        onClick={() => editCategory(category)} 
-                                        className="btn-primary mr-1"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button 
-                                        onClick={() => deleteCategory(category)} 
-                                        className="btn-red mr-1"
-                                    >
-                                        Delete
-                                    </button>
+                                    <button onClick={() => editCategory(category)} className="btn-primary mr-1">Edit</button>
+                                    <button onClick={() => deleteCategory(category)} className="btn-red mr-1">Delete</button>
                                 </td>       
                             </tr>
                         ))}

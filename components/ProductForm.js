@@ -50,7 +50,6 @@ export default function ProductForm({
         });
     }, []);
 
-    // Calculate base price from variants
     function getBasePrice() {
         const prices = variants
             .map(v => parseFloat(v.price))
@@ -60,7 +59,7 @@ export default function ProductForm({
 
     async function saveProduct(e) {
         e.preventDefault();
-        const price = getBasePrice(); // Auto-calculate base price
+        const price = getBasePrice(); 
         const data = { title, description, price, images, category, variants };
         if (_id) {
             await axios.put('/api/products', { ...data, _id });

@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { isAdminRequest } from '@/lib/isAdmin';
 
 const bucketName = 'scent-siphon-admin';
 
 export async function POST(request) {
+  
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+  }
+  
   const formData = await request.formData();
   const files = formData.getAll('file');
   
