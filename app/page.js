@@ -8,13 +8,13 @@ export default function Home() {
   
   return (
     <Layout>
-      <div className="text-blue-900 flex justify-between w-full">
-        <h2>
+      <div className="flex justify-between items-center w-full">
+        <h2 className="text-gray-900 text-xl font-semibold">
           Welcome, <b>{session?.user?.name}</b>
         </h2>
-        <div className="flex bg-gray-300 gap-1 text-black rounded-lg overflow-hidden">
-          <img src={session?.user?.image} alt="" className="w-6 h-6"/>
-          <span className="px-2">
+        <div className="flex bg-gray-100 gap-2 text-gray-900 rounded-lg overflow-hidden border border-gray-200 px-3 py-2">
+          <img src={session?.user?.image} alt="" className="w-6 h-6 rounded-full"/>
+          <span className="font-medium">
             {session?.user?.name}
           </span>
         </div>

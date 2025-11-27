@@ -17,26 +17,26 @@ export default function ProductForm({
 }) {
     const [title, setTitle] = useState(existingTitle || '');
     const [description, setDescription] = useState(existingDescription || '');
-    const [category, setCategory] = useState(assignedCategory || '');
+    const [category, setCategory] = useState(assignedCategory?._id || assignedCategory || '');
     const [images, setImages] = useState(existingImages || []);
-    const [variants, setVariants] = useState(() => {
-    // Make sure existingVariants exists and has data
-    if (existingVariants && existingVariants.length > 0) {
-        // Ensure all fields are properly typed
-        return existingVariants.map(v => ({
-            size: v.size || '',
-            price: v.price || '',
-            sku: v.sku || '',
-            stock: v.stock || 0
-        }));
-    }
-    // Default to one empty variant
-    return [{ size: '', price: '', sku: '', stock: 0 }];
-    });
+    const [variants, setVariants] = useState([{ size: '', price: '', sku: '', stock: 0 }]);
     const [goToProducts, setGoToProducts] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false); 
     const [categories, setCategories] = useState([]);
+    const [error, setError] = useState(''); 
     const router = useRouter();
+
+    useEffect(() => {
+        if (existingVariants && existingVariants.length > 0) {
+            setVariants(existingVariants.map(v => ({
+                size: v.size || '',
+                price: v.price || '',
+                sku: v.sku || '',
+                stock: v.stock || 0
+            })));
+        }
+    }, [existingVariants]);
 
     useEffect(() => {
         if (goToProducts) {
@@ -45,13 +45,18 @@ export default function ProductForm({
     }, [goToProducts, router]);
 
     useEffect(() => {
-        axios.get('/api/categories').then(result => {
-            setCategories(result.data);
-        });
+        axios.get('/api/categories')
+            .then(result => {
+                setCategories(result.data);
+            })
+            .catch(error => {
+                console.error('Failed to fetch categories:', error);
+                setError('Failed to load categories. Please refresh the page.');
+            });
     }, []);
 
-    function getBasePrice() {
-        const prices = variants
+    function getBasePrice(variantsArray) {
+        const prices = variantsArray
             .map(v => parseFloat(v.price))
             .filter(p => !isNaN(p) && p > 0);
         return prices.length > 0 ? Math.min(...prices) : 0;
@@ -59,14 +64,52 @@ export default function ProductForm({
 
     async function saveProduct(e) {
         e.preventDefault();
-        const price = getBasePrice(); 
-        const data = { title, description, price, images, category, variants };
-        if (_id) {
-            await axios.put('/api/products', { ...data, _id });
-        } else {
-            await axios.post('/api/products', data);
+        setError(''); 
+        
+        if (!title || title.trim() === '') {
+            setError('Product name is required');
+            return;
         }
-        setGoToProducts(true);
+        
+        if (!description || description.trim() === '') {
+            setError('Product description is required');
+            return;
+        }
+        
+        const validVariants = variants.filter(v => 
+            v.size && v.size.trim() !== '' && 
+            v.price && parseFloat(v.price) > 0
+        );
+        
+        if (validVariants.length === 0) {
+            setError('Please add at least one variant with size and price');
+            return;
+        }
+        setIsSaving(true);
+
+        try {
+            const price = getBasePrice(validVariants);
+            const data = { 
+                title, 
+                description, 
+                price, 
+                images, 
+                category, 
+                variants: validVariants
+            };
+            
+            if (_id) {
+                await axios.put('/api/products', { ...data, _id });
+            } else {
+                await axios.post('/api/products', data);
+            }
+            setGoToProducts(true);
+        } catch (error) {
+            console.error('Failed to save product:', error);
+            setError('Failed to save product. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
     }
 
     async function uploadImages(e) {
@@ -107,10 +150,21 @@ export default function ProductForm({
     
     return (
         <form onSubmit={saveProduct}>
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {error}
+                </div>
+            )}
+            
             <label>Product Name</label>
-            <input type="text" placeholder="Product Name" value={title} onChange={e => setTitle(e.target.value)}/>
+            <input 
+                type="text" 
+                placeholder="Product Name" 
+                value={title} 
+                onChange={e => setTitle(e.target.value)}
+            />
+            
             <label>Category</label>
-
             <select value={category} onChange={e => setCategory(e.target.value)}>
                 <option value="">Uncategorized</option>
                 {categories.length > 0 && categories.map(category => (
@@ -121,72 +175,79 @@ export default function ProductForm({
             </select>
 
             <label>Photos</label>
-
             <div className="mb-2 flex flex-wrap gap-1">
-                <ReactSortable list={images} setList={updateImagesOrder} className="flex flex-wrap gap-1">
+                <ReactSortable 
+                    list={images} 
+                    setList={updateImagesOrder} 
+                    className="flex flex-wrap gap-1"
+                >
                     {!!images?.length && images.map(link => (
                         <div key={link} className="h-24">
                             <img src={link} alt="" className="rounded-lg" />
                         </div>
                     ))}
-                </ReactSortable>                   
+                </ReactSortable>
                 {isUploading && (
-                    <div className="h-32 flex items-center justify-center rounded-lg">
+                    <div className="h-24 flex items-center justify-center rounded-lg">
                         <Spinner/>
                     </div>
                 )}
-                <label className="w-32 h-32 rounded-lg text-center flex flex-col items-center justify-center gap-1 text-sm text-gray-500 bg-white hover:bg-gray-100 cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                    </svg>
-                    <div>Upload Images</div>
-                    <input type="file" onChange={uploadImages} className="hidden"/>
+                <label className="w-24 h-24 rounded-lg flex items-center justify-center text-xs text-gray-500 bg-white hover:bg-gray-50 cursor-pointer border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors duration-200 p-2">
+                    <div className="text-center">Upload Images</div>
+                    <input type="file" onChange={uploadImages} className="hidden" multiple/>
                 </label>
-            </div>    
+            </div>
 
             <label>Product Description</label>
-            <textarea placeholder="Product Description" value={description} onChange={e => setDescription(e.target.value)}/>
+            <textarea 
+                placeholder="Product Description" 
+                value={description} 
+                onChange={e => setDescription(e.target.value)}
+            />
+            
             <label className="block mb-1">Size Variants</label>
-            <p className="text-sm text-gray-500 mb-2">Base price will be automatically set to the lowest variant price</p>
+            <p className="text-sm text-gray-500 mb-3">
+                Base price will be automatically set to the lowest variant price
+            </p>
 
             {variants.map((variant, index) => (
-                <div key={index} className="flex gap-1 mb-2">
-                    <input 
-                        type="text" 
-                        value={variant.size} 
-                        className="mb-0" 
-                        onChange={e => handleVariantChange(index, 'size', e.target.value)}  
+                <div key={index} className="flex gap-2 mb-2 items-center">
+                    <input
+                        type="text"
+                        value={variant.size}
+                        className="mb-0"
+                        onChange={e => handleVariantChange(index, 'size', e.target.value)}
                         placeholder="Size (e.g., 5ml)"
                     />
-                    <input 
-                        type="number" 
-                        value={variant.price} 
-                        className="mb-0" 
-                        onChange={e => handleVariantChange(index, 'price', e.target.value)}  
+                    <input
+                        type="number"
+                        value={variant.price}
+                        className="mb-0"
+                        onChange={e => handleVariantChange(index, 'price', e.target.value)}
                         placeholder="Price"
                     />
-                    <input 
-                        type="text" 
-                        value={variant.sku} 
-                        className="mb-0" 
-                        onChange={e => handleVariantChange(index, 'sku', e.target.value)}  
+                    <input
+                        type="text"
+                        value={variant.sku}
+                        className="mb-0"
+                        onChange={e => handleVariantChange(index, 'sku', e.target.value)}
                         placeholder="SKU (optional)"
                     />
                     <input
-                        type="number" 
-                        value={variant.stock} 
-                        className="mb-0 w-24" 
-                        onChange={e => handleVariantChange(index, 'stock', e.target.value)}  
+                        type="number"
+                        value={variant.stock}
+                        className="mb-0 w-24"
+                        onChange={e => handleVariantChange(index, 'stock', e.target.value)}
                         placeholder="Quantity"
                     />
                     {variants.length > 1 && (
-                        <button onClick={() => removeVariant(index)} type="button" className="btn-red">Remove</button>
+                        <button onClick={() => removeVariant(index)} type="button" className="btn-red text-sm py-2 px-3">Remove</button>
                     )}
                 </div>
             ))}
 
-            <button onClick={addVariant} type="button" className="btn-default text-sm mb-2">Add Size Option</button>
-            <button type="submit" className="btn-primary">Save Product</button>
+            <button onClick={addVariant} type="button" className="btn-default mb-4"disabled={isSaving} >Add Size Option</button>
+            <button type="submit" className="btn-primary"disabled={isSaving} >{isSaving ? 'Saving...' : 'Save Product'} </button>
         </form>
     );    
 }

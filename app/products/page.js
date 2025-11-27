@@ -17,7 +17,10 @@ export default function Products() {
 
   return (
     <Layout>
-      <Link className="btn-primary" href={'/products/new'} >
+      <Link className="btn-primary inline-flex items-center gap-2" href={'/products/new'}>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
         Add New Product
       </Link>
       <table className="basic mt-4">

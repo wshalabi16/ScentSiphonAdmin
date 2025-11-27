@@ -72,15 +72,15 @@ export default function Categories() {
             <h1>Categories</h1>
             <label>{editedCategory ? `Edit Category: ${editedCategory.name}` : 'Create New Category'}</label>
             <form onSubmit={saveCategory}>
-                <div className="flex gap-1">
-                    <input 
-                        type="text" 
-                        placeholder="Category Name" 
-                        onChange={e => setName(e.target.value)} 
+                <div className="flex gap-2 mb-2">
+                    <input
+                        type="text"
+                        placeholder="Category Name"
+                        onChange={e => setName(e.target.value)}
                         value={name}
                     />
-                    <select 
-                        value={parentCategory} 
+                    <select
+                        value={parentCategory}
                         onChange={e => setParentCategory(e.target.value)}
                     >
                         <option value="">No Parent Category</option>
@@ -91,12 +91,12 @@ export default function Categories() {
                         ))}
                     </select>
                 </div>
-                
-                <div className="flex gap-1">
+
+                <div className="flex gap-2">
                     {editedCategory && (
-                        <button type="button" onClick={cancelEdit} className="btn-default py-1">Cancel</button>
+                        <button type="button" onClick={cancelEdit} className="btn-default">Cancel</button>
                     )}
-                    <button type="submit" className="btn-primary py-1">Save</button>
+                    <button type="submit" className="btn-primary">Save</button>
                 </div>
             </form>
             
@@ -115,8 +115,8 @@ export default function Categories() {
                                 <td>{category.name}</td> 
                                 <td>{category?.parent?.name}</td>
                                 <td>
-                                    <button onClick={() => editCategory(category)} className="btn-primary mr-1">Edit</button>
-                                    <button onClick={() => deleteCategory(category)} className="btn-red mr-1">Delete</button>
+                                    <button onClick={() => editCategory(category)} className="btn-primary text-sm py-1 px-3 mr-2">Edit</button>
+                                    <button onClick={() => deleteCategory(category)} className="btn-red text-sm py-1 px-3">Delete</button>
                                 </td>       
                             </tr>
                         ))}

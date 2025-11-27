@@ -3,40 +3,71 @@
 img {
     max-height: 100%;
 }
+
 input, textarea, select {
-    @apply border-2 border-gray-300 rounded-md px-1 w-full;
-    @apply mb-2;
+    @apply border-2 border-gray-200 rounded-lg px-3 py-2 w-full mb-2;
+    @apply transition-colors duration-200 outline-none;
 }
+
 input:focus, textarea:focus, select:focus {
-    @apply border-blue-900;
+    @apply border-blue-500 ring-2 ring-blue-100;
 }
+
 h1 {
-    @apply font-bold text-blue-900 mb-2 text-xl;
+    @apply font-bold text-gray-900 mb-4 text-2xl;
 }
+
 label {
-    @apply font-semibold text-blue-900;
+    @apply font-semibold text-gray-700 block mb-1;
 }
+
 .btn-primary {
-    @apply bg-green-700 text-white rounded-md py-2 px-4;
+    @apply bg-emerald-500 text-white rounded-lg py-2 px-4;
+    @apply transition-all duration-200 ease-in-out;
+    @apply hover:bg-emerald-600 hover:shadow-md;
+    @apply active:scale-95;
+    @apply font-medium;
 }
+
+.btn-red {
+    @apply bg-red-500 text-white rounded-lg py-2 px-4;
+    @apply transition-all duration-200 ease-in-out;
+    @apply hover:bg-red-600 hover:shadow-md;
+    @apply active:scale-95;
+    @apply font-medium;
+}
+
+.btn-default {
+    @apply bg-gray-500 text-white rounded-lg py-2 px-4;
+    @apply transition-all duration-200 ease-in-out;
+    @apply hover:bg-gray-600 hover:shadow-md;
+    @apply active:scale-95;
+    @apply font-medium;
+}
+
 table.basic {
-    @apply w-full;
+    @apply w-full bg-white rounded-lg shadow-sm overflow-hidden;
+    @apply border border-gray-200;
 }
-table.basic thead tr td{
-    @apply bg-blue-100;
+
+table.basic thead tr td {
+    @apply bg-gray-50 text-sm font-semibold uppercase border-b-2 border-gray-200 px-6 py-3;
+    @apply text-gray-700;
 }
-table.basic tr td{
-    @apply border border-blue-700 p-1;
+
+table.basic tr td {
+    @apply border-b border-gray-100 px-6 py-3;
+    @apply text-gray-900;
 }
-table.basic a{
-    @apply bg-blue-900 text-white text-sm py-1 px-2 rounded-md inline-flex gap-1 mr-1;
+
+table.basic tbody tr {
+    @apply transition-colors duration-150;
+    @apply hover:bg-gray-50;
 }
-.btn-red, .btn-default{
-    @apply px-4 py-1 rounded-md inline-block mt-2;
-}
-.btn-red{
-    @apply bg-red-800 text-white;
-}
-.btn-default{
-    @apply bg-gray-600 text-white;
+
+table.basic a {
+    @apply bg-blue-500 text-white text-sm py-2 px-3 rounded-lg inline-flex gap-1 items-center mr-2;
+    @apply transition-all duration-200 ease-in-out;
+    @apply hover:bg-blue-600 hover:shadow-sm;
+    @apply font-medium;
 }
