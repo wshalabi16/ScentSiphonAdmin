@@ -4,13 +4,26 @@ img {
     max-height: 100%;
 }
 
-input, textarea, select {
+input:not([type="checkbox"]),
+textarea,
+select {
     @apply border-2 border-gray-200 rounded-lg px-3 py-2 w-full mb-2;
     @apply transition-colors duration-200 outline-none;
 }
 
-input:focus, textarea:focus, select:focus {
+input:not([type="checkbox"]):focus,
+textarea:focus,
+select:focus {
     @apply border-blue-500 ring-2 ring-blue-100;
+}
+
+input[type="checkbox"] {
+    @apply rounded border-gray-300 align-middle;
+    @apply transition-shadow duration-200;
+}
+
+input[type="checkbox"]:focus {
+    @apply ring-2 ring-blue-500 ring-offset-1 outline-none;
 }
 
 h1 {
@@ -18,7 +31,7 @@ h1 {
 }
 
 label {
-    @apply font-semibold text-gray-700 block mb-1;
+    @apply font-semibold text-gray-700 mb-1;
 }
 
 .btn-primary {

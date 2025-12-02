@@ -1,5 +1,5 @@
 import { Product } from "@/models/Product";
-import "@/models/Category";
+import { Category } from "@/models/Category";
 import { mongooseConnect } from "@/lib/mongoose";
 import { NextResponse } from 'next/server';
 import { isAdminRequest } from '@/lib/isAdmin';
@@ -11,7 +11,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
   }
   
-  const { title, description, price, images, category, variants } = await request.json();
+  const { title, description, price, images, category, variants, featured } = await request.json(); 
   const productDoc = await Product.create({
     title,
     description,
@@ -19,6 +19,7 @@ export async function POST(request) {
     images,
     category: category || undefined,
     variants: variants || [],
+    featured: featured || false, 
   });
   return NextResponse.json(productDoc);
 }
@@ -45,7 +46,7 @@ export async function PUT(request) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
   }
   
-  const { title, description, price, images, category, variants, _id } = await request.json();
+  const { title, description, price, images, category, variants, featured, _id } = await request.json(); 
   await Product.updateOne(
     { _id }, 
     { 
@@ -55,6 +56,7 @@ export async function PUT(request) {
       images,
       category: category || undefined,
       variants: variants || [],
+      featured: featured || false, 
     }
   );
   return NextResponse.json(true);

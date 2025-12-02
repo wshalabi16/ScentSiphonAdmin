@@ -13,7 +13,8 @@ export default function ProductForm({
     price: existingPrice, 
     images: existingImages, 
     category: assignedCategory,
-    variants: existingVariants
+    variants: existingVariants,
+    featured: existingFeatured,
 }) {
     const [title, setTitle] = useState(existingTitle || '');
     const [description, setDescription] = useState(existingDescription || '');
@@ -22,9 +23,10 @@ export default function ProductForm({
     const [variants, setVariants] = useState([{ size: '', price: '', sku: '', stock: 0 }]);
     const [goToProducts, setGoToProducts] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [isSaving, setIsSaving] = useState(false); 
+    const [isSaving, setIsSaving] = useState(false);
     const [categories, setCategories] = useState([]);
-    const [error, setError] = useState(''); 
+    const [error, setError] = useState('');
+    const [featured, setFeatured] = useState(existingFeatured || false); 
     const router = useRouter();
 
     useEffect(() => {
@@ -64,7 +66,7 @@ export default function ProductForm({
 
     async function saveProduct(e) {
         e.preventDefault();
-        setError(''); 
+        setError('');
         
         if (!title || title.trim() === '') {
             setError('Product name is required');
@@ -85,8 +87,9 @@ export default function ProductForm({
             setError('Please add at least one variant with size and price');
             return;
         }
+        
         setIsSaving(true);
-
+        
         try {
             const price = getBasePrice(validVariants);
             const data = { 
@@ -95,7 +98,8 @@ export default function ProductForm({
                 price, 
                 images, 
                 category, 
-                variants: validVariants
+                variants: validVariants,
+                featured,  
             };
             
             if (_id) {
@@ -246,8 +250,21 @@ export default function ProductForm({
                 </div>
             ))}
 
-            <button onClick={addVariant} type="button" className="btn-default mb-4"disabled={isSaving} >Add Size Option</button>
-            <button type="submit" className="btn-primary"disabled={isSaving} >{isSaving ? 'Saving...' : 'Save Product'} </button>
+            <button onClick={addVariant} type="button" className="btn-default mb-4"disabled={isSaving}>Add Size Option</button>
+
+            <div className="mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={featured}
+                    onChange={(e) => setFeatured(e.target.checked)}
+                    className="w-4 h-4 cursor-pointer"
+                />
+                <span>Feature this product on homepage</span>
+                </label>
+            </div>
+
+            <button type="submit" className="btn-primary"disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Product'}</button>
         </form>
     );    
 }
