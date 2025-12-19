@@ -63,7 +63,8 @@ table.basic {
     @apply border border-gray-200;
 }
 
-table.basic thead tr td {
+table.basic thead tr td,
+table.basic thead tr th {
     @apply bg-gray-50 text-sm font-semibold uppercase border-b-2 border-gray-200 px-6 py-3;
     @apply text-gray-700;
 }
