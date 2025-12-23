@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";  
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";    
-import Spinner from "./Spinner"; 
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Spinner from "./Spinner";
 import { ReactSortable } from "react-sortablejs"; 
 
 export default function ProductForm({
@@ -44,7 +45,7 @@ export default function ProductForm({
         if (goToProducts) {
             router.push('/products');
         }
-    }, [goToProducts, router]);
+    }, [goToProducts]);
 
     useEffect(() => {
         axios.get('/api/categories')
@@ -61,7 +62,12 @@ export default function ProductForm({
         const prices = variantsArray
             .map(v => parseFloat(v.price))
             .filter(p => !isNaN(p) && p > 0);
-        return prices.length > 0 ? Math.min(...prices) : 0;
+
+        if (prices.length === 0) {
+            throw new Error('At least one variant must have a valid price');
+        }
+
+        return Math.min(...prices);
     }
 
     async function saveProduct(e) {
@@ -120,18 +126,35 @@ export default function ProductForm({
         const files = e.target?.files;
         if (files?.length > 0) {
             setIsUploading(true);
-            const data = new FormData();
-            for (const file of files) {
-                data.append('file', file);
+            setError('');
+
+            try {
+                const data = new FormData();
+                for (const file of files) {
+                    data.append('file', file);
+                }
+                const response = await axios.post('/api/upload', data);
+                setImages(oldImages => [...oldImages, ...response.data.links]);
+            } catch (error) {
+                console.error('Failed to upload images:', error);
+                setError(error.response?.data?.error || 'Failed to upload images. Please try again.');
+            } finally {
+                setIsUploading(false);
             }
-            const response = await axios.post('/api/upload', data);
-            setImages(oldImages => [...oldImages, ...response.data.links]);
-            setIsUploading(false);
         }
     }
 
-    function updateImagesOrder(images) {
-        setImages(images);
+    function updateImagesOrder(newImages) {
+        setImages(newImages || []);
+    }
+
+    function removeImage(linkToRemove) {
+        setImages(prev => prev.filter(link => link !== linkToRemove));
+    }
+
+    function isValidImageUrl(url) {
+        if (!url || typeof url !== 'string') return false;
+        return url.startsWith('https://') || url.startsWith('http://');
     }
 
     function addVariant() {
@@ -161,15 +184,17 @@ export default function ProductForm({
             )}
             
             <label>Product Name</label>
-            <input 
-                type="text" 
-                placeholder="Product Name" 
-                value={title} 
+            <input
+                type="text"
+                placeholder="Product Name"
+                value={title}
                 onChange={e => setTitle(e.target.value)}
+                disabled={isSaving}
+                autoComplete="off"
             />
-            
+
             <label>Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)}>
+            <select value={category} onChange={e => setCategory(e.target.value)} disabled={isSaving}>
                 <option value="">Uncategorized</option>
                 {categories.length > 0 && categories.map(category => (
                     <option key={category._id} value={category._id}>
@@ -180,14 +205,31 @@ export default function ProductForm({
 
             <label>Photos</label>
             <div className="mb-2 flex flex-wrap gap-1">
-                <ReactSortable 
-                    list={images} 
-                    setList={updateImagesOrder} 
+                <ReactSortable
+                    list={images || []}
+                    setList={updateImagesOrder}
                     className="flex flex-wrap gap-1"
                 >
-                    {!!images?.length && images.map(link => (
-                        <div key={link} className="h-24">
-                            <img src={link} alt="" className="rounded-lg" />
+                    {!!images?.length && images.map((link, index) => (
+                        <div key={link} className="h-24 w-24 relative group">
+                            <img
+                                src={link}
+                                alt={`Product image ${index + 1}`}
+                                className="w-full h-full object-cover rounded-lg"
+                                onError={(e) => {
+                                    console.error('Failed to load image:', link);
+                                    e.currentTarget.style.display = 'none';
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => removeImage(link)}
+                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md"
+                                aria-label={`Remove image ${index + 1}`}
+                                disabled={isSaving}
+                            >
+                                ×
+                            </button>
                         </div>
                     ))}
                 </ReactSortable>
@@ -196,17 +238,18 @@ export default function ProductForm({
                         <Spinner/>
                     </div>
                 )}
-                <label className="w-24 h-24 rounded-lg flex items-center justify-center text-xs text-gray-500 bg-white hover:bg-gray-50 cursor-pointer border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors duration-200 p-2">
+                <label className={`w-24 h-24 rounded-lg flex items-center justify-center text-xs text-gray-500 bg-white hover:bg-gray-50 border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors duration-200 p-2 ${isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                     <div className="text-center">Upload Images</div>
-                    <input type="file" onChange={uploadImages} className="hidden" multiple/>
+                    <input type="file" onChange={uploadImages} className="hidden" multiple accept="image/*" disabled={isSaving}/>
                 </label>
             </div>
 
             <label>Product Description</label>
-            <textarea 
-                placeholder="Product Description" 
-                value={description} 
+            <textarea
+                placeholder="Product Description"
+                value={description}
                 onChange={e => setDescription(e.target.value)}
+                disabled={isSaving}
             />
             
             <label className="block mb-1">Size Variants</label>
@@ -222,6 +265,7 @@ export default function ProductForm({
                         className="mb-0"
                         onChange={e => handleVariantChange(index, 'size', e.target.value)}
                         placeholder="Size (e.g., 5ml)"
+                        disabled={isSaving}
                     />
                     <input
                         type="number"
@@ -229,6 +273,7 @@ export default function ProductForm({
                         className="mb-0"
                         onChange={e => handleVariantChange(index, 'price', e.target.value)}
                         placeholder="Price"
+                        disabled={isSaving}
                     />
                     <input
                         type="text"
@@ -236,6 +281,7 @@ export default function ProductForm({
                         className="mb-0"
                         onChange={e => handleVariantChange(index, 'sku', e.target.value)}
                         placeholder="SKU (optional)"
+                        disabled={isSaving}
                     />
                     <input
                         type="number"
@@ -243,9 +289,10 @@ export default function ProductForm({
                         className="mb-0 w-24"
                         onChange={e => handleVariantChange(index, 'stock', e.target.value)}
                         placeholder="Quantity"
+                        disabled={isSaving}
                     />
                     {variants.length > 1 && (
-                        <button onClick={() => removeVariant(index)} type="button" className="btn-red text-sm py-2 px-3">Remove</button>
+                        <button onClick={() => removeVariant(index)} type="button" className="btn-red text-sm py-2 px-3" disabled={isSaving}>Remove</button>
                     )}
                 </div>
             ))}
@@ -253,12 +300,13 @@ export default function ProductForm({
             <button onClick={addVariant} type="button" className="btn-default mb-4"disabled={isSaving}>Add Size Option</button>
 
             <div className="mb-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className={`flex items-center gap-2 ${isSaving ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                 <input
                     type="checkbox"
                     checked={featured}
                     onChange={(e) => setFeatured(e.target.checked)}
                     className="w-4 h-4 cursor-pointer"
+                    disabled={isSaving}
                 />
                 <span>Feature this product on homepage</span>
                 </label>

@@ -1,18 +1,16 @@
 import { mongooseConnect } from "@/lib/mongoose";
 import { Order } from "@/models/Order";
 import { NextResponse } from "next/server";
+import { isAdminRequest } from "@/lib/isAdmin";
+import { apiErrorHandler } from "@/lib/apiErrorHandler";
 
-export async function GET(req) {
+export const GET = apiErrorHandler(async (req) => {
   await mongooseConnect();
-  
-  try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    return NextResponse.json(orders);
-  } catch (error) {
-    console.error('Orders fetch error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch orders' },
-      { status: 500 }
-    );
+
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
   }
-}
+
+  const orders = await Order.find().sort({ createdAt: -1 });
+  return NextResponse.json(orders);
+}, 'ORDER_READ');
