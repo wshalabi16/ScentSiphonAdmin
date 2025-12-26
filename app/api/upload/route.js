@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { isAdminRequest } from '@/lib/isAdmin';
 import { apiErrorHandler } from '@/lib/apiErrorHandler';
+import { mongooseConnect } from '@/lib/mongoose';
 import crypto from 'crypto';
 
 const bucketName = process.env.S3_BUCKET_NAME;
@@ -93,13 +94,21 @@ export const POST = apiErrorHandler(async (request) => {
     const randomName = crypto.randomUUID();
     const newFilename = `${randomName}.${ext}`;
 
+    // Map MIME types to correct Content-Type
+    const mimeToContentType = {
+      'image/jpeg': 'image/jpeg',
+      'image/png': 'image/png',
+      'image/webp': 'image/webp',
+      'image/gif': 'image/gif'
+    };
+
     // Upload with public-read ACL (required for product images to display)
     await client.send(new PutObjectCommand({
       Bucket: bucketName,
       Key: newFilename,
       Body: buffer,
       ACL: 'public-read',
-      ContentType: 'image/jpeg', // Force safe MIME type
+      ContentType: mimeToContentType[file.type] || 'image/jpeg',
       Metadata: {
         'original-name': file.name,
         'uploaded-by': 'admin'
@@ -112,3 +121,42 @@ export const POST = apiErrorHandler(async (request) => {
 
   return NextResponse.json({links});
 }, 'FILE_UPLOAD');
+
+export const DELETE = apiErrorHandler(async (request) => {
+  await mongooseConnect();
+
+  if (!await isAdminRequest()) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+  }
+
+  const filename = request.nextUrl.searchParams.get('filename');
+
+  if (!filename) {
+    return NextResponse.json({ error: 'Filename required' }, { status: 400 });
+  }
+
+  // Validate filename format (UUID + extension)
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\.(jpg|jpeg|png|webp|gif)$/i.test(filename)) {
+    return NextResponse.json({ error: 'Invalid filename format' }, { status: 400 });
+  }
+
+  const client = new S3Client({
+    region: 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.S3_ACCESS_KEY,
+      secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+    },
+  });
+
+  try {
+    await client.send(new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: filename
+    }));
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete from S3:', error);
+    return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 });
+  }
+}, 'S3_DELETE');

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import mongoose from "mongoose";
 
 const OrderSchema = new mongoose.Schema({
   line_items: Object,
@@ -12,6 +12,8 @@ const OrderSchema = new mongoose.Schema({
   phone: String,
   paid: { type: Boolean, default: false, index: true },
   currency: { type: String, default: 'CAD' },
+  stripeEventId: { type: String, unique: true, sparse: true, index: true },  // For webhook idempotency
+  processedAt: Date,  // When webhook was processed
 }, {
   timestamps: true,
 });

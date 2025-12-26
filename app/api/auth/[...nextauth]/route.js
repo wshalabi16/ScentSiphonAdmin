@@ -18,12 +18,13 @@ export const authOptions = {
   ],
   adapter: MongoDBAdapter(clientPromise),
   callbacks: {
-    session: async ({ session, token, user }) => {
-      if (adminEmails.includes(session?.user?.email)) {
-        return session;
-      } else {
-        return false;
+    async signIn({ user }) {
+      // Check if user email is in admin list
+      if (adminEmails.includes(user?.email)) {
+        return true;  // Allow sign in
       }
+      // Reject sign in - this prevents session creation
+      return false;
     },
   },
 };

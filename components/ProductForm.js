@@ -148,8 +148,20 @@ export default function ProductForm({
         setImages(newImages || []);
     }
 
-    function removeImage(linkToRemove) {
-        setImages(prev => prev.filter(link => link !== linkToRemove));
+    async function removeImage(linkToRemove) {
+        try {
+            // Extract filename from S3 URL
+            const filename = linkToRemove.split('/').pop();
+
+            // Delete from S3
+            await axios.delete(`/api/upload?filename=${filename}`);
+
+            // Remove from state
+            setImages(prev => prev.filter(link => link !== linkToRemove));
+        } catch (error) {
+            console.error('Failed to delete image:', error);
+            setError('Failed to delete image from storage. Please try again.');
+        }
     }
 
     function isValidImageUrl(url) {
@@ -164,7 +176,7 @@ export default function ProductForm({
     function handleVariantChange(index, field, value) {
         setVariants(prev => {
             const updated = [...prev];
-            updated[index][field] = value;
+            updated[index] = { ...updated[index], [field]: value };
             return updated;
         });
     }

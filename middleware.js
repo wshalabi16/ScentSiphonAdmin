@@ -5,10 +5,11 @@ export async function middleware(request) {
   // Only apply rate limiting to API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     try {
-      // Get IP address
-      const ip = request.headers.get('x-forwarded-for') ||
-                 request.headers.get('x-real-ip') ||
-                 '127.0.0.1';
+      // Get IP address - take first IP from X-Forwarded-For (actual client)
+      const forwarded = request.headers.get('x-forwarded-for');
+      const ip = forwarded
+        ? forwarded.split(',')[0].trim()  // First IP in chain = actual client
+        : request.ip || '127.0.0.1';
 
       // Check rate limit
       const { success, limit, reset, remaining } = await rateLimiter.limit(ip);
@@ -40,9 +41,20 @@ export async function middleware(request) {
 
       return response;
     } catch (error) {
-      // If rate limiting fails (e.g., Upstash down), allow request through
+      // If rate limiting fails (e.g., Upstash down), deny request for security
       console.error('Rate limiting error:', error);
-      return NextResponse.next();
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Service temporarily unavailable. Please try again later.'
+        }),
+        {
+          status: 503,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': '60',
+          },
+        }
+      );
     }
   }
 

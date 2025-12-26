@@ -82,7 +82,13 @@ export const PUT = apiErrorHandler(async (request) => {
 
       visited.add(current.toString());
       const cat = await Category.findById(current);
-      current = cat?.parent;
+
+      // If parent doesn't exist, break out of loop
+      if (!cat) {
+        break;
+      }
+
+      current = cat.parent;
     }
   }
 
