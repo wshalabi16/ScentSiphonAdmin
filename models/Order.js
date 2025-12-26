@@ -14,6 +14,11 @@ const OrderSchema = new mongoose.Schema({
   currency: { type: String, default: 'CAD' },
   stripeEventId: { type: String, unique: true, sparse: true, index: true },  // For webhook idempotency
   processedAt: Date,  // When webhook was processed
+  shipped: { type: Boolean, default: false, index: true },
+  delivered: { type: Boolean, default: false, index: true },
+  shippedAt: Date,
+  deliveredAt: Date,
+  trackingNumber: String
 }, {
   timestamps: true,
 });

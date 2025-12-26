@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { rateLimiter } from './lib/rateLimiter';
 
-export async function middleware(request) {
+export async function proxy(request) {
   // Only apply rate limiting to API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     try {

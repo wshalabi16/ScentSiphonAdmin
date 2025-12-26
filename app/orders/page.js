@@ -10,18 +10,21 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
+  const [activeTab, setActiveTab] = useState('all');
+  const [shippingModal, setShippingModal] = useState({ isOpen: false, orderId: null, trackingNumber: '' });
+  const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
     document.title = 'Orders | Scent Siphon Admin';
     fetchOrders();
-  }, []);
+  }, [activeTab]);
 
   const fetchOrders = async (page = 1) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.get(`/api/orders?page=${page}&limit=20`);
+      const response = await axios.get(`/api/orders?page=${page}&limit=20&status=${activeTab}`);
 
       // Handle both old format (array) and new format (object with pagination)
       if (Array.isArray(response.data)) {
@@ -48,9 +51,87 @@ export default function OrdersPage() {
     fetchOrders(pagination.page);
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setPagination({ page: 1, limit: 20, total: 0, pages: 0 });
+  };
+
+  const handleMarkShipped = async (orderId, trackingNumber) => {
+    setActionLoading(orderId);
+    try {
+      await axios.patch('/api/orders', {
+        orderId,
+        action: 'mark_shipped',
+        trackingNumber: trackingNumber || undefined
+      });
+      setShippingModal({ isOpen: false, orderId: null, trackingNumber: '' });
+      fetchOrders(pagination.page);
+    } catch (error) {
+      console.error('Failed to mark as shipped:', error);
+      alert('Failed to mark order as shipped. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleMarkDelivered = async (orderId) => {
+    setActionLoading(orderId);
+    try {
+      await axios.patch('/api/orders', {
+        orderId,
+        action: 'mark_delivered'
+      });
+      fetchOrders(pagination.page);
+    } catch (error) {
+      console.error('Failed to mark as delivered:', error);
+      alert('Failed to mark order as delivered. Please try again.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const openShippingModal = (orderId) => {
+    setShippingModal({ isOpen: true, orderId, trackingNumber: '' });
+  };
+
+  const closeShippingModal = () => {
+    setShippingModal({ isOpen: false, orderId: null, trackingNumber: '' });
+  };
+
   return (
     <Layout>
       <h1>Orders</h1>
+
+      {/* Tab Navigation */}
+      <div style={{ marginTop: '20px', marginBottom: '20px', borderBottom: '2px solid #e5e7eb' }}>
+        <div style={{ display: 'flex', gap: '0' }}>
+          {[
+            { key: 'all', label: 'All Orders' },
+            { key: 'pending', label: 'Pending Payment' },
+            { key: 'paid', label: 'Ready to Ship' },
+            { key: 'shipped', label: 'Shipped' },
+            { key: 'delivered', label: 'Delivered' }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              style={{
+                padding: '12px 24px',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === tab.key ? '3px solid #3b82f6' : '3px solid transparent',
+                color: activeTab === tab.key ? '#3b82f6' : '#6b7280',
+                fontWeight: activeTab === tab.key ? '600' : '400',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontSize: '15px'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Loading State */}
       {loading && (
@@ -83,10 +164,11 @@ export default function OrdersPage() {
           <thead>
             <tr>
               <th>Date</th>
-              <th>Paid</th>
+              <th>Status</th>
               <th>Recipient</th>
               <th>Products</th>
-              <th>Webhook Info</th>
+              <th>Shipping Info</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -102,17 +184,20 @@ export default function OrdersPage() {
                   hour12: true
                 })}
               </td>
-              <td className={order.paid ? 'text-green-600' : 'text-red-600'}>
-                <span style={{ 
-                  fontWeight: 'bold',
-                  display: 'inline-block',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: order.paid ? '#dcfce7' : '#fee2e2',
-                  color: order.paid ? '#16a34a' : '#dc2626'
-                }}>
-                  {order.paid ? 'PAID' : 'UNPAID'}
-                </span>
+              <td>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{
+                    fontWeight: 'bold',
+                    display: 'inline-block',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.85em',
+                    backgroundColor: order.delivered ? '#dcfce7' : order.shipped ? '#dbeafe' : order.paid ? '#fef3c7' : '#fee2e2',
+                    color: order.delivered ? '#16a34a' : order.shipped ? '#1d4ed8' : order.paid ? '#d97706' : '#dc2626'
+                  }}>
+                    {order.delivered ? 'DELIVERED' : order.shipped ? 'SHIPPED' : order.paid ? 'READY TO SHIP' : 'UNPAID'}
+                  </span>
+                </div>
               </td>
               <td>
                 <div style={{ marginBottom: '6px' }}>
@@ -174,35 +259,103 @@ export default function OrdersPage() {
                 })}
               </td>
               <td>
-                {order.paid && order.processedAt ? (
+                {order.shipped ? (
                   <div>
-                    <div style={{ fontSize: '0.85em', color: '#059669', marginBottom: '4px' }}>
-                      ✓ Processed
+                    <div style={{ fontSize: '0.85em', color: '#1d4ed8', marginBottom: '4px' }}>
+                      📦 Shipped
                     </div>
-                    <div style={{ fontSize: '0.8em', color: '#666' }}>
-                      {new Date(order.processedAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </div>
-                    {order.stripeEventId && (
-                      <div style={{ 
-                        fontSize: '0.75em', 
-                        color: '#999', 
+                    {order.shippedAt && (
+                      <div style={{ fontSize: '0.8em', color: '#666', marginBottom: '4px' }}>
+                        {new Date(order.shippedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </div>
+                    )}
+                    {order.trackingNumber && (
+                      <div style={{
+                        fontSize: '0.8em',
+                        color: '#4b5563',
                         fontFamily: 'monospace',
                         marginTop: '4px',
+                        padding: '4px 6px',
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '3px',
                         wordBreak: 'break-all'
                       }}>
-                        {order.stripeEventId}
+                        Tracking: {order.trackingNumber}
+                      </div>
+                    )}
+                    {order.delivered && order.deliveredAt && (
+                      <div style={{ fontSize: '0.85em', color: '#16a34a', marginTop: '8px' }}>
+                        ✓ Delivered {new Date(order.deliveredAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
+                        })}
                       </div>
                     )}
                   </div>
+                ) : order.paid ? (
+                  <div style={{ fontSize: '0.85em', color: '#d97706' }}>
+                    Ready to ship
+                  </div>
                 ) : (
                   <div style={{ fontSize: '0.85em', color: '#9ca3af' }}>
-                    {order.paid ? 'Legacy order' : 'Pending payment'}
+                    Awaiting payment
+                  </div>
+                )}
+              </td>
+              <td>
+                {order.paid && !order.shipped && (
+                  <button
+                    onClick={() => openShippingModal(order._id)}
+                    disabled={actionLoading === order._id}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: actionLoading === order._id ? 'not-allowed' : 'pointer',
+                      fontSize: '0.85em',
+                      opacity: actionLoading === order._id ? 0.6 : 1,
+                      marginBottom: '4px',
+                      width: '100%'
+                    }}
+                  >
+                    {actionLoading === order._id ? 'Processing...' : 'Mark as Shipped'}
+                  </button>
+                )}
+                {order.shipped && !order.delivered && (
+                  <button
+                    onClick={() => handleMarkDelivered(order._id)}
+                    disabled={actionLoading === order._id}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#16a34a',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: actionLoading === order._id ? 'not-allowed' : 'pointer',
+                      fontSize: '0.85em',
+                      opacity: actionLoading === order._id ? 0.6 : 1,
+                      width: '100%'
+                    }}
+                  >
+                    {actionLoading === order._id ? 'Processing...' : 'Mark as Delivered'}
+                  </button>
+                )}
+                {order.delivered && (
+                  <div style={{ fontSize: '0.85em', color: '#16a34a', textAlign: 'center' }}>
+                    ✓ Complete
+                  </div>
+                )}
+                {!order.paid && (
+                  <div style={{ fontSize: '0.85em', color: '#9ca3af', textAlign: 'center' }}>
+                    -
                   </div>
                 )}
               </td>
@@ -234,6 +387,85 @@ export default function OrdersPage() {
           >
             Next
           </button>
+        </div>
+      )}
+
+      {/* Shipping Modal */}
+      {shippingModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.25em' }}>Mark Order as Shipped</h2>
+            <p style={{ marginBottom: '16px', color: '#6b7280', fontSize: '0.95em' }}>
+              Add an optional tracking number for this shipment.
+            </p>
+            <input
+              type="text"
+              placeholder="Tracking Number (optional)"
+              value={shippingModal.trackingNumber}
+              onChange={(e) => setShippingModal({ ...shippingModal, trackingNumber: e.target.value })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                fontSize: '0.95em',
+                marginBottom: '20px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={closeShippingModal}
+                disabled={actionLoading}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9em',
+                  opacity: actionLoading ? 0.6 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleMarkShipped(shippingModal.orderId, shippingModal.trackingNumber)}
+                disabled={actionLoading}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: actionLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '0.9em',
+                  opacity: actionLoading ? 0.6 : 1
+                }}
+              >
+                {actionLoading ? 'Processing...' : 'Confirm Shipment'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </Layout>
